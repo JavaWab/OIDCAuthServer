@@ -82,8 +82,4 @@ public class OAuth2Config extends AuthorizationServerConfigurerAdapter {
         endpoints.authorizationCodeServices(defaultOIDCAuthorizationCodeServices);
     }
 
-    @Override
-    public void configure(AuthorizationServerSecurityConfigurer security) throws Exception {
-        super.configure(security);
-    }
 }

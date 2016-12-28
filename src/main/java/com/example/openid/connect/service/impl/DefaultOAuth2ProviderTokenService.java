@@ -15,7 +15,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.RSASSASigner;
-import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.util.Base64URL;
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -27,9 +26,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
 import org.springframework.security.oauth2.common.exceptions.InvalidRequestException;
@@ -39,13 +35,14 @@ import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.TokenRequest;
 
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
-import java.util.*;
+import java.util.Date;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * DefaultOAuth2ProviderTokenService
@@ -192,7 +189,7 @@ public class DefaultOAuth2ProviderTokenService implements OAuth2TokenEntityServi
             UserInfo userInfo = userPressDetailsService.getUserByUsername(username);
             if (userInfo != null) {
 
-                OAuth2AccessTokenEntity idTokenEntity = createIdToken(client, originalAuthRequest, claims.getIssueTime(), userInfo.getSub(), token);
+                OAuth2AccessTokenEntity idTokenEntity = createIdToken(client, originalAuthRequest, claims.getIssueTime(), userInfo, token);
 
                 // attach the id token to the parent access token
                 token.setIdToken(idTokenEntity);
@@ -206,7 +203,7 @@ public class DefaultOAuth2ProviderTokenService implements OAuth2TokenEntityServi
         return token;
     }
 
-    private OAuth2AccessTokenEntity createIdToken(ClientDetails client, OAuth2Request request, Date issueTime, String sub, OAuth2AccessTokenEntity accessToken) {
+    private OAuth2AccessTokenEntity createIdToken(ClientDetails client, OAuth2Request request, Date issueTime, UserInfo userInfo, OAuth2AccessTokenEntity accessToken) {
         JWSAlgorithm signingAlg = JWSAlgorithm.parse("RS256");
 
         OAuth2AccessTokenEntity idTokenEntity = new OAuth2AccessTokenEntity();
@@ -235,8 +232,9 @@ public class DefaultOAuth2ProviderTokenService implements OAuth2TokenEntityServi
         idClaims.expirationTime(expiration);
         idTokenEntity.setExpiration(expiration);
         idClaims.issuer("http://wwww.wang.com");
-        idClaims.subject(sub);
+        idClaims.subject(userInfo.getSub());
         idClaims.audience(Lists.newArrayList(client.getClientId()));
+        idClaims.claim("user_name", userInfo.getSub());
         idClaims.jwtID(UUID.randomUUID().toString()); // set a random NONCE in the middle of it
 
         String nonce = (String) request.getExtensions().get("nonce");
@@ -251,6 +249,7 @@ public class DefaultOAuth2ProviderTokenService implements OAuth2TokenEntityServi
             Base64URL at_hash = IdTokenHashUtils.getAccessTokenHash(signingAlg, accessToken);
             idClaims.claim("at_hash", at_hash);
         }
+        String type = request.getGrantType();
 
         JWT idToken;
 

@@ -9,7 +9,6 @@ import com.example.oauth2.userdetails.model.impl.DefaultUserInfo;
 import com.example.openid.connect.service.impl.DefaultOAuth2ProviderTokenService;
 import com.example.openid.connect.service.impl.DefaultOIDCAuthorizationCodeServices;
 import com.example.service.UserService;
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
@@ -17,7 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
 import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
@@ -28,7 +27,6 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.oauth2.provider.TokenGranter;
 import org.springframework.security.oauth2.provider.TokenRequest;
-import org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationDetails;
 import org.springframework.security.oauth2.provider.client.ClientCredentialsTokenGranter;
 import org.springframework.security.oauth2.provider.code.AuthorizationCodeTokenGranter;
 import org.springframework.security.oauth2.provider.implicit.ImplicitTokenGranter;
@@ -104,14 +102,15 @@ public class APIController implements InitializingBean {
 
     @RequestMapping(value = "/userinfo", method = RequestMethod.GET)
     @ResponseBody
-    public Map<String, Object> userInfo() {
-        OAuth2AuthenticationDetails auth = (OAuth2AuthenticationDetails)SecurityContextHolder.getContext().getAuthentication().getDetails();
-        String userStr = auth.getTokenValue();
-        userStr = userStr.split("\\.")[1];
-        JSONObject jsonObject = new JSONObject(new String(org.springframework.security.crypto.codec.Base64.decode(userStr.getBytes())));
+    public Map<String, Object> userInfo(Authentication authentication) {
+//        OAuth2AuthenticationDetails auth = (OAuth2AuthenticationDetails)SecurityContextHolder.getContext().getAuthentication().getDetails();
+//        String userStr = auth.getTokenValue();
+//        userStr = userStr.split("\\.")[1];
+//        JSONObject jsonObject = new JSONObject(new String(org.springframework.security.crypto.codec.Base64.decode(userStr.getBytes())));
         Map<String, Object> userinfo = new HashMap<String, Object>();
-        UserInfo user = userService.getUserByUsername(jsonObject.getString("sub"));
-
+//        UserInfo user = userService.getUserByUsername(jsonObject.getString("sub"));
+        User tUser = (User)(authentication.getPrincipal());
+        UserInfo user = userService.getUserByUsername(tUser.getUsername());
         userinfo.put("sub", user.getSub());
         userinfo.put("name", user.getName());
         userinfo.put("preferred_username", user.getPreferredUsername());

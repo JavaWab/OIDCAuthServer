@@ -1,9 +1,5 @@
 package com.example.openid.connect.tokenconverter;
 
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.Map;
-
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -13,12 +9,19 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.oauth2.provider.token.UserAuthenticationConverter;
 import org.springframework.util.StringUtils;
 
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 public class OIDCUserAuthenticationConverter implements UserAuthenticationConverter {
 
 	private Collection<? extends GrantedAuthority> defaultAuthorities;
 	private UserDetailsService userDetailsService;
 
-	public void setUserDetailsService(UserDetailsService userDetailsService) {
+    public OIDCUserAuthenticationConverter() {
+    }
+
+    public void setUserDetailsService(UserDetailsService userDetailsService) {
 		this.userDetailsService = userDetailsService;
 	}
 

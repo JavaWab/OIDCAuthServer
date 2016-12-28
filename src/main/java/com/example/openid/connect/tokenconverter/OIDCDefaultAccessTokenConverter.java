@@ -1,14 +1,6 @@
 package com.example.openid.connect.tokenconverter;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-
+import com.google.common.base.Splitter;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -20,7 +12,7 @@ import org.springframework.security.oauth2.provider.token.AccessTokenConverter;
 import org.springframework.security.oauth2.provider.token.DefaultUserAuthenticationConverter;
 import org.springframework.security.oauth2.provider.token.UserAuthenticationConverter;
 
-import com.google.common.base.Splitter;
+import java.util.*;
 
 public class OIDCDefaultAccessTokenConverter implements AccessTokenConverter {
 

@@ -1,12 +1,14 @@
 package com.example.oauth2.config;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.annotation.Order;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 
 /**
  * WebSecurityConfig
@@ -15,18 +17,33 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
  * @date 2016/12/13
  */
 @Configuration
-@Order(10)
+@EnableWebSecurity
+@EnableGlobalMethodSecurity(prePostEnabled = true)//允许进入页面方法前检验
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
+    @Autowired
+    @Qualifier("filterRegistrationBean")
+    private FilterRegistrationBean filterRegistrationBean;
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-        http.formLogin().permitAll();
+        http.addFilterBefore(filterRegistrationBean.getFilter(), AnonymousAuthenticationFilter.class);
         http.authorizeRequests()
-                .antMatchers("/api/token").permitAll()
+            .antMatchers(
+//                StaticParams.PATHREGX.API,
+                StaticParams.PATHREGX.CSS,
+                StaticParams.PATHREGX.JS,
+                StaticParams.PATHREGX.IMG,
+                "/api/token",
+                "/oauth/token").permitAll()
+            .antMatchers("/api/userinfo").hasAnyAuthority("ROLE_ADMIN", "ROLE_USER")
+            .anyRequest().authenticated()
+            .and()
+            .formLogin().permitAll()
+            .and()
+            .logout().permitAll()
             .and()
             .httpBasic().disable()
             .csrf().disable();
 
     }
-
 }
