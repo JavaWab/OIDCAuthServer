@@ -15,6 +15,7 @@ import org.springframework.security.oauth2.config.annotation.configurers.ClientD
 import org.springframework.security.oauth2.config.annotation.web.configuration.AuthorizationServerConfigurerAdapter;
 import org.springframework.security.oauth2.config.annotation.web.configuration.EnableAuthorizationServer;
 import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerEndpointsConfigurer;
+import org.springframework.security.oauth2.provider.approval.DefaultUserApprovalHandler;
 import org.springframework.security.oauth2.provider.token.store.redis.RedisTokenStore;
 
 import java.util.Arrays;
@@ -62,7 +63,7 @@ public class OAuth2Config extends AuthorizationServerConfigurerAdapter {
             clientDetails.setClientId("acme");
             clientDetails.setClientSecret("acmesecret");
             clientDetails.setAuthorizedGrantTypes(Arrays.asList("authorization_code", "client_credentials", "refresh_token", "password"));
-            clientDetails.setScope(Arrays.asList("openid"));
+            clientDetails.setScope(Arrays.asList("openid","read"));
             clientDetails.setAuthorities(authorities);
             mongodbClientDetailsService.addClientDetails(clientDetails);
         }
@@ -72,13 +73,16 @@ public class OAuth2Config extends AuthorizationServerConfigurerAdapter {
 
     @Override
     public void configure(AuthorizationServerEndpointsConfigurer endpoints) throws Exception {
-
+        //配置各种处理service
         endpoints.tokenServices(defaultOAuth2ProviderTokenService);
         endpoints.authenticationManager(authenticationManager);
         endpoints.tokenStore(redisTokenStore);
         endpoints.userDetailsService(userPressDetailsService);
         endpoints.setClientDetailsService(mongodbClientDetailsService);
         endpoints.authorizationCodeServices(defaultOIDCAuthorizationCodeServices);
+
+        //重定向原spring security aouth2的各种URL
+        endpoints.pathMapping("/oauth/confirm_access", "/oidc/confirm_access");
     }
 
 }

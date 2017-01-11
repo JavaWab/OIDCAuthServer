@@ -39,6 +39,7 @@ import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.ModelAndView;
 
 import java.util.*;
 
@@ -49,30 +50,14 @@ import java.util.*;
  * @date 2016/12/16
  */
 @Controller
-@RequestMapping(value = "/api", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-public class APIController implements InitializingBean {
+@RequestMapping(value = "/api")
+public class APIController {
     private static final Logger LOG = LoggerFactory.getLogger(APIController.class);
 
     @Autowired
-    private MongoClientDetailsService clientDetailsService;
-    @Autowired
     private UserService userService;
-    @Autowired
-    private DefaultOIDCAuthorizationCodeServices defaultOIDCAuthorizationCodeServices;
-    @Autowired
-    private DefaultOAuth2ProviderTokenService defaultOAuth2ProviderTokenService;
-    @Autowired
-    private AuthenticationManager authenticationManager;
 
-    private OAuth2RequestFactory oAuth2RequestFactory;
-
-    @RequestMapping(value = "/test", method = RequestMethod.GET)
-    @ResponseBody
-    public String test() {
-        return "Hello Test";
-    }
-
-    @RequestMapping(value = "/users/add", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    @RequestMapping(value = "/users/add", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     @ResponseBody
     public String addUser(@RequestBody @Validated UserVO user) throws Exception {
         DefaultAddress location = new DefaultAddress();
@@ -100,7 +85,7 @@ public class APIController implements InitializingBean {
         return userInfo.toJson().toString();
     }
 
-    @RequestMapping(value = "/userinfo", method = RequestMethod.GET)
+    @RequestMapping(value = "/userinfo", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     @ResponseBody
     public Map<String, Object> userInfo(Authentication authentication) {
 //        OAuth2AuthenticationDetails auth = (OAuth2AuthenticationDetails)SecurityContextHolder.getContext().getAuthentication().getDetails();
@@ -109,7 +94,7 @@ public class APIController implements InitializingBean {
 //        JSONObject jsonObject = new JSONObject(new String(org.springframework.security.crypto.codec.Base64.decode(userStr.getBytes())));
         Map<String, Object> userinfo = new HashMap<String, Object>();
 //        UserInfo user = userService.getUserByUsername(jsonObject.getString("sub"));
-        User tUser = (User)(authentication.getPrincipal());
+        User tUser = (User) (authentication.getPrincipal());
         UserInfo user = userService.getUserByUsername(tUser.getUsername());
         userinfo.put("sub", user.getSub());
         userinfo.put("name", user.getName());
@@ -120,74 +105,5 @@ public class APIController implements InitializingBean {
         return userinfo;
     }
 
-    @RequestMapping(value = "/token", method = RequestMethod.POST,consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-    @ResponseBody
-    public OAuth2AccessToken getAccessToken(@ModelAttribute TokenVO tokenVO) {
-        String client_id = tokenVO.getClient_id();
-        Map<String, String> parameters = tokenVO.toMap();
-        ClientDetails authenticatedClient = this.clientDetailsService.loadClientByClientId(client_id);
 
-        if (authenticatedClient == null) {
-            throw new InvalidClientException("Client not found: " + client_id);
-        } else {
-            String secret = authenticatedClient.getClientSecret();
-            if (!secret.equals(tokenVO.getClient_secret())){
-                throw new InvalidClientException("invalid confidential client: " + client_id);
-            }
-        }
-        TokenRequest tokenRequest = oAuth2RequestFactory.createTokenRequest(parameters, authenticatedClient);
-        new DefaultOAuth2RequestValidator().validateScope(tokenRequest, authenticatedClient);
-        String grantType = tokenRequest.getGrantType();
-        if (!StringUtils.hasText(grantType)) {
-            throw new InvalidRequestException("Missing grant type");
-        } else if (grantType.equals("implicit")) {
-            throw new InvalidGrantException("Implicit grant type not supported from token endpoint");
-        } else {
-            if (this.isAuthCodeRequest(parameters) && !tokenRequest.getScope().isEmpty()) {
-                LOG.debug("Clearing scope of incoming token request");
-                tokenRequest.setScope(Collections.<String>emptySet());
-            }
-
-            if (this.isRefreshTokenRequest(parameters)) {
-                tokenRequest.setScope(OAuth2Utils.parseParameterList((String) parameters.get("scope")));
-            }
-
-            OAuth2AccessToken token = this.getTokenGranter(grantType).grant(grantType, tokenRequest);
-            if (token == null) {
-                throw new UnsupportedGrantTypeException("Unsupported grant type: " + grantType);
-            } else {
-                return token;
-            }
-        }
-    }
-
-    @Override
-    public void afterPropertiesSet() throws Exception {
-        Assert.state(this.clientDetailsService != null, "ClientDetailsService must be provided");
-        this.oAuth2RequestFactory = new DefaultOAuth2RequestFactory(this.clientDetailsService);
-    }
-
-    private boolean isAuthCodeRequest(Map<String, String> parameters) {
-        return "authorization_code".equals(parameters.get("grant_type")) && parameters.get("code") != null;
-    }
-
-    private boolean isRefreshTokenRequest(Map<String, String> parameters) {
-        return "refresh_token".equals(parameters.get("grant_type")) && parameters.get("refresh_token") != null;
-    }
-
-    protected TokenGranter getTokenGranter(String grantType) {
-        if ("authorization_code".equals(grantType)) {
-            return new AuthorizationCodeTokenGranter(this.defaultOAuth2ProviderTokenService, this.defaultOIDCAuthorizationCodeServices, this.clientDetailsService, this.oAuth2RequestFactory);
-        } else if ("password".equals(grantType)) {
-            return new ResourceOwnerPasswordTokenGranter(this.authenticationManager, this.defaultOAuth2ProviderTokenService, this.clientDetailsService, this.oAuth2RequestFactory);
-        } else if ("refresh_token".equals(grantType)) {
-            return new RefreshTokenGranter(this.defaultOAuth2ProviderTokenService, this.clientDetailsService, this.oAuth2RequestFactory);
-        } else if ("client_credentials".equals(grantType)) {
-            return new ClientCredentialsTokenGranter(this.defaultOAuth2ProviderTokenService, this.clientDetailsService, this.oAuth2RequestFactory);
-        } else if ("implicit".equals(grantType)) {
-            return new ImplicitTokenGranter(this.defaultOAuth2ProviderTokenService, this.clientDetailsService, this.oAuth2RequestFactory);
-        } else {
-            throw new UnsupportedGrantTypeException("Unsupport grant_type: " + grantType);
-        }
-    }
 }

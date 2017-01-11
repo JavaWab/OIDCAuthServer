@@ -27,23 +27,28 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http.addFilterBefore(filterRegistrationBean.getFilter(), AnonymousAuthenticationFilter.class);
+
         http.authorizeRequests()
             .antMatchers(
 //                StaticParams.PATHREGX.API,
                 StaticParams.PATHREGX.CSS,
                 StaticParams.PATHREGX.JS,
                 StaticParams.PATHREGX.IMG,
-                "/api/token",
-                "/oauth/token").permitAll()
+                "/oidc/login",
+                "/oidc/token").permitAll()
             .antMatchers("/api/userinfo").hasAnyAuthority("ROLE_ADMIN", "ROLE_USER")
             .anyRequest().authenticated()
             .and()
-            .formLogin().permitAll()
+                .formLogin()
+                .loginPage("/oidc/login")
+                .passwordParameter("password")
+                .usernameParameter("username")
+                .permitAll()
             .and()
-            .logout().permitAll()
+                .logout().logoutSuccessUrl("/oidc/login?logout").permitAll()
             .and()
-            .httpBasic().disable()
-            .csrf().disable();
+                .httpBasic().disable()
+                .csrf().disable();
 
     }
 }
