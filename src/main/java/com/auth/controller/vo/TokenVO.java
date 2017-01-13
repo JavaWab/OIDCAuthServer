@@ -1,5 +1,7 @@
 package com.auth.controller.vo;
 
+import org.hibernate.validator.constraints.NotEmpty;
+
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
@@ -12,8 +14,8 @@ import java.util.Map;
  */
 
 public class TokenVO implements Serializable {
-    private static final long serialVersionUID = 1L;
-
+    private static final long serialVersionUID = 4512873694756755815L;
+    @NotEmpty(message = "Missing grant_type")
     private String grant_type;
     private String code;
     private String redirect_uri;
@@ -22,6 +24,7 @@ public class TokenVO implements Serializable {
     private String username;
     private String password;
     private String state;
+    private String refresh_token;
 
     public String getGrant_type() {
         return grant_type;
@@ -87,16 +90,51 @@ public class TokenVO implements Serializable {
         this.state = state;
     }
 
+    public String getRefresh_token() {
+        return refresh_token;
+    }
+
+    public void setRefresh_token(String refresh_token) {
+        this.refresh_token = refresh_token;
+    }
+
     public Map<String, String> toMap(){
         Map<String, String> map =  new HashMap<>();
-        map.put("code", this.code);
-        map.put("redirect_uri", this.redirect_uri);
-        map.put("client_id", this.client_id);
-        map.put("client_secret",this.client_secret);
-        map.put("grant_type", this.grant_type);
-        map.put("username", this.username);
-        map.put("password", this.password);
-        map.put("state", this.state);
+        if (this.code != null) {
+            map.put("code", this.code);
+        }
+
+        if (this.redirect_uri != null) {
+            map.put("redirect_uri", this.redirect_uri);
+        }
+
+        if (this.client_id != null) {
+            map.put("client_id", this.client_id);
+        }
+
+        if (this.client_secret != null) {
+            map.put("client_secret",this.client_secret);
+        }
+
+        if (this.grant_type != null) {
+            map.put("grant_type", this.grant_type);
+        }
+
+        if (this.username != null) {
+            map.put("username", this.username);
+        }
+
+        if (this.password != null) {
+            map.put("password", this.password);
+        }
+
+        if (this.state != null) {
+            map.put("state", this.state);
+        }
+
+        if (this.refresh_token != null) {
+            map.put("refresh_token", this.refresh_token);
+        }
         return map;
     }
 }

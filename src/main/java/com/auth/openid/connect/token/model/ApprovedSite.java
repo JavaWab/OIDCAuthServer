@@ -1,5 +1,9 @@
 package com.auth.openid.connect.token.model;
 
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
+import java.io.Serializable;
 import java.util.Date;
 import java.util.Set;
 
@@ -9,9 +13,10 @@ import java.util.Set;
  * @author Anbang Wang
  * @date 2016/12/15
  */
-public class ApprovedSite {
+public class ApprovedSite implements Serializable {
+    private static final long serialVersionUID = 7610952539824585852L;
     // unique id
-    private Long id;
+    private String id;
 
     // which user made the approval
     private String userId;
@@ -32,11 +37,11 @@ public class ApprovedSite {
     // this should include all information for what data to access
     private Set<String> allowedScopes;
 
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 

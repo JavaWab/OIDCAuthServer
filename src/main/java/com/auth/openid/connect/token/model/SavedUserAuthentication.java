@@ -1,5 +1,7 @@
 package com.auth.openid.connect.token.model;
 
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 
@@ -12,7 +14,9 @@ import java.util.Collection;
  * @date 2016/12/15
  */
 public class SavedUserAuthentication implements Authentication {
-    private Long id;
+
+    private static final long serialVersionUID = 3181691421101183268L;
+    private String id;
 
     private String name;
 
@@ -21,6 +25,9 @@ public class SavedUserAuthentication implements Authentication {
     private boolean authenticated;
 
     private String sourceClass;
+
+    public SavedUserAuthentication() {
+    }
 
     public SavedUserAuthentication(Authentication src) {
         setName(src.getName());
@@ -35,11 +42,11 @@ public class SavedUserAuthentication implements Authentication {
         }
     }
 
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 

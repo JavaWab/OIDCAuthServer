@@ -24,7 +24,7 @@ public class MongoClientDetailsService implements ClientDetailsService, ClientRe
 
     @Override
     public ClientDetails loadClientByClientId(String client_id) throws ClientRegistrationException {
-        return mongoTemplate.findOne(Query.query(Criteria.where("clientId").is(client_id)), BaseClientDetails.class);
+        return mongoTemplate.findOne(Query.query(Criteria.where("clientId").is(client_id)), WXBaseClientDetails.class);
     }
 
     @Override
@@ -34,29 +34,30 @@ public class MongoClientDetailsService implements ClientDetailsService, ClientRe
 
     @Override
     public void updateClientDetails(ClientDetails clientDetails) throws NoSuchClientException {
-        Update update = Update.update("resourceIds", clientDetails.getResourceIds())
-                .set("clientSecret", clientDetails.getClientSecret())
-                .set("authorizedGrantTypes", clientDetails.getAuthorizedGrantTypes())
-                .set("registeredRedirectUris", clientDetails.getRegisteredRedirectUri())
-                .set("accessTokenValiditySeconds", clientDetails.getAccessTokenValiditySeconds())
-                .set("refreshTokenValiditySeconds", clientDetails.getRefreshTokenValiditySeconds())
-                .set("scope", clientDetails.getScope());
-        mongoTemplate.updateFirst(Query.query(Criteria.where("clientId").is(clientDetails.getClientId())), update, BaseClientDetails.class);
+        WXBaseClientDetails wxBaseClientDetails = (WXBaseClientDetails)clientDetails;
+        Update update = Update.update("resourceIds", wxBaseClientDetails.getResourceIds())
+                .set("clientSecret", wxBaseClientDetails.getClientSecret())
+                .set("authorizedGrantTypes", wxBaseClientDetails.getAuthorizedGrantTypes())
+                .set("registeredRedirectUris", wxBaseClientDetails.getRegisteredRedirectUri())
+                .set("accessTokenValiditySeconds", wxBaseClientDetails.getAccessTokenValiditySeconds())
+                .set("refreshTokenValiditySeconds", wxBaseClientDetails.getRefreshTokenValiditySeconds())
+                .set("scope", wxBaseClientDetails.getScope());
+        mongoTemplate.updateFirst(Query.query(Criteria.where("clientId").is(wxBaseClientDetails.getClientId())), update, WXBaseClientDetails.class);
     }
 
     @Override
     public void updateClientSecret(String s, String s1) throws NoSuchClientException {
-        mongoTemplate.updateFirst(Query.query(Criteria.where("clientId").is(s)), Update.update("clientSecret", s1), BaseClientDetails.class);
+        mongoTemplate.updateFirst(Query.query(Criteria.where("clientId").is(s)), Update.update("clientSecret", s1), WXBaseClientDetails.class);
     }
 
     @Override
     public void removeClientDetails(String s) throws NoSuchClientException {
-        mongoTemplate.remove(Query.query(Criteria.where("clientId").is(s)), BaseClientDetails.class);
+        mongoTemplate.remove(Query.query(Criteria.where("clientId").is(s)), WXBaseClientDetails.class);
     }
 
     @Override
     public List<ClientDetails> listClientDetails() {
-        List<BaseClientDetails> list = mongoTemplate.findAll(BaseClientDetails.class);
+        List<WXBaseClientDetails> list = mongoTemplate.findAll(WXBaseClientDetails.class);
         return new ArrayList<>(list);
     }
 }

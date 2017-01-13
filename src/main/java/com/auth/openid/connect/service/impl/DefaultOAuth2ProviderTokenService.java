@@ -1,6 +1,8 @@
 package com.auth.openid.connect.service.impl;
 
 import com.auth.oauth2.clientdetails.MongoClientDetailsService;
+import com.auth.oauth2.clientdetails.WXBaseClientDetails;
+import com.auth.oauth2.service.MongodbTokenStore;
 import com.auth.oauth2.userdetails.UserPressDetailsService;
 import com.auth.oauth2.userdetails.model.UserInfo;
 import com.auth.openid.connect.service.OAuth2TokenEntityService;
@@ -23,12 +25,14 @@ import com.nimbusds.jwt.SignedJWT;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
 import org.springframework.security.oauth2.common.exceptions.InvalidRequestException;
+import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
@@ -40,9 +44,7 @@ import java.security.KeyPair;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
-import java.util.Date;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * DefaultOAuth2ProviderTokenService
@@ -59,6 +61,9 @@ public class DefaultOAuth2ProviderTokenService implements OAuth2TokenEntityServi
     @Value("${westar.refresh-token.validity-seconds}")
     private Integer refreshTokenValiditySeconds;
     @Autowired
+    @Qualifier("mongodbTokenStore")
+    private MongodbTokenStore tokenStore;
+    @Autowired
     private OIDCKeyPairGenerator oidcKeyPairGenerator;
     @Autowired
     private UserPressDetailsService userPressDetailsService;
@@ -69,7 +74,7 @@ public class DefaultOAuth2ProviderTokenService implements OAuth2TokenEntityServi
             // look up our client
             OAuth2Request request = authentication.getOAuth2Request();
 
-            ClientDetails client = clientDetailsService.loadClientByClientId(request.getClientId());
+            WXBaseClientDetails client = (WXBaseClientDetails) clientDetailsService.loadClientByClientId(request.getClientId());
 
             if (client == null) {
                 throw new InvalidClientException("Client not found: " + request.getClientId());
@@ -129,7 +134,10 @@ public class DefaultOAuth2ProviderTokenService implements OAuth2TokenEntityServi
             OAuth2AccessTokenEntity enhancedToken = (OAuth2AccessTokenEntity) enhance(token, authentication);
 
             //可存储各种token
-
+            tokenStore.storeAccessToken(enhancedToken, authentication);
+            if (enhancedToken.getRefreshToken() != null) {
+                tokenStore.storeRefreshToken(enhancedToken.getRefreshToken(), authentication); // make sure we save any changes that might have been enhanced
+            }
             return enhancedToken;
         }
 
@@ -145,12 +153,12 @@ public class DefaultOAuth2ProviderTokenService implements OAuth2TokenEntityServi
         ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
 
         JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder()
-                .claim("azp", clientId)
-                .issuer("http://wwww.wang.com")
-                .issueTime(new Date())
-                .expirationTime(token.getExpiration())
-                .subject(authentication.getName())
-                .jwtID(UUID.randomUUID().toString()); // set a random NONCE in the middle of it
+            .claim("azp", clientId)
+            .issuer("http://wwww.wang.com")
+            .issueTime(new Date())
+            .expirationTime(token.getExpiration())
+            .subject(authentication.getName())
+            .jwtID(UUID.randomUUID().toString()); // set a random NONCE in the middle of it
 
         String audience = (String) authentication.getOAuth2Request().getExtensions().get("aud");
         if (!Strings.isNullOrEmpty(audience)) {
@@ -160,7 +168,7 @@ public class DefaultOAuth2ProviderTokenService implements OAuth2TokenEntityServi
         JWTClaimsSet claims = builder.build();
 
         JWSAlgorithm signingAlg = JWSAlgorithm.parse("RS256");
-        JWSHeader header = new JWSHeader(signingAlg, new JOSEObjectType("JWT"),null, null, null, null, null, null, null, null, null, null, null);
+        JWSHeader header = new JWSHeader(signingAlg, new JOSEObjectType("JWT"), null, null, null, null, null, null, null, null, null, null, null);
         SignedJWT signed = new SignedJWT(header, claims);
         KeyPair kp = oidcKeyPairGenerator.getDefaultKeyPair();
         JWSSigner signer = new RSASSASigner((RSAPrivateKey) (kp.getPrivate()));
@@ -263,7 +271,7 @@ public class DefaultOAuth2ProviderTokenService implements OAuth2TokenEntityServi
             KeyPair kp = oidcKeyPairGenerator.getDefaultKeyPair();
             JWSSigner signer = new RSASSASigner((RSAPrivateKey) (kp.getPrivate()));
 
-            JWSHeader header = new JWSHeader(signingAlg, new JOSEObjectType("JWT"),null, null, null, null, null, null, null, null, null, null, null);
+            JWSHeader header = new JWSHeader(signingAlg, new JOSEObjectType("JWT"), null, null, null, null, null, null, null, null, null, null, null);
             SignedJWT signedJWT = new SignedJWT(header, idClaims.build());
             try {
                 signedJWT.sign(signer);
@@ -288,7 +296,7 @@ public class DefaultOAuth2ProviderTokenService implements OAuth2TokenEntityServi
 
     }
 
-    private OAuth2RefreshTokenEntity createRefreshToken(ClientDetails client, AuthenticationHolderEntity authHolder) {
+    private OAuth2RefreshTokenEntity createRefreshToken(WXBaseClientDetails client, AuthenticationHolderEntity authHolder) {
         OAuth2RefreshTokenEntity refreshToken = new OAuth2RefreshTokenEntity(); //refreshTokenFactory.createNewRefreshToken();
         JWTClaimsSet.Builder refreshClaims = new JWTClaimsSet.Builder();
 
@@ -334,96 +342,111 @@ public class DefaultOAuth2ProviderTokenService implements OAuth2TokenEntityServi
         }
     }
 
+    /**
+     * Utility function to delete a refresh token that's expired before returning it.
+     *
+     * @param tokenValue the token value to check
+     * @return null if the token is null or expired, the input token (unchanged) if it hasn't
+     */
+    private OAuth2RefreshTokenEntity clearExpiredRefreshToken(String tokenValue) {
+        OAuth2RefreshTokenEntity token = (OAuth2RefreshTokenEntity) tokenStore.readRefreshToken(tokenValue);
+        if (token == null) {
+            return null;
+        } else if (token.isExpired()) {
+            // immediately revoke expired token
+            logger.debug("Clearing expired access token: " + token.getValue());
+            tokenStore.removeRefreshToken(token);
+            return null;
+        } else {
+            return token;
+        }
+    }
+
     @Override
     public OAuth2AccessTokenEntity refreshAccessToken(String refreshTokenValue, TokenRequest authRequest) throws AuthenticationException {
-//        OAuth2RefreshTokenEntity refreshToken = clearExpiredRefreshToken(tokenRepository.getRefreshTokenByValue(refreshTokenValue));
-//
-//        if (refreshToken == null) {
-//            throw new InvalidTokenException("Invalid refresh token: " + refreshTokenValue);
-//        }
-//
-//        ClientDetailsEntity client = refreshToken.getClient();
-//
-//        AuthenticationHolderEntity authHolder = refreshToken.getAuthenticationHolder();
-//
-//        // make sure that the client requesting the token is the one who owns the refresh token
-//        ClientDetailsEntity requestingClient = clientDetailsService.loadClientByClientId(authRequest.getClientId());
-//        if (!client.getClientId().equals(requestingClient.getClientId())) {
-//            tokenRepository.removeRefreshToken(refreshToken);
-//            throw new InvalidClientException("Client does not own the presented refresh token");
-//        }
-//
-//        //Make sure this client allows access token refreshing
-//        if (!client.isAllowRefresh()) {
-//            throw new InvalidClientException("Client does not allow refreshing access token!");
-//        }
-//
-//        // clear out any access tokens
-//        if (client.isClearAccessTokensOnRefresh()) {
-//            tokenRepository.clearAccessTokensForRefreshToken(refreshToken);
-//        }
-//
-//        if (refreshToken.isExpired()) {
-//            tokenRepository.removeRefreshToken(refreshToken);
-//            throw new InvalidTokenException("Expired refresh token: " + refreshTokenValue);
-//        }
-//
-//        OAuth2AccessTokenEntity token = new OAuth2AccessTokenEntity();
-//
-//        // get the stored scopes from the authentication holder's authorization request; these are the scopes associated with the refresh token
-//        Set<String> refreshScopesRequested = new HashSet<>(refreshToken.getAuthenticationHolder().getAuthentication().getOAuth2Request().getScope());
-//        Set<SystemScope> refreshScopes = scopeService.fromStrings(refreshScopesRequested);
-//        // remove any of the special system scopes
-//        refreshScopes = scopeService.removeReservedScopes(refreshScopes);
-//
-//        Set<String> scopeRequested = authRequest.getScope() == null ? new HashSet<String>() : new HashSet<>(authRequest.getScope());
-//        Set<SystemScope> scope = scopeService.fromStrings(scopeRequested);
-//
-//        // remove any of the special system scopes
-//        scope = scopeService.removeReservedScopes(scope);
-//
-//        if (scope != null && !scope.isEmpty()) {
-//            // ensure a proper subset of scopes
-//            if (refreshScopes != null && refreshScopes.containsAll(scope)) {
-//                // set the scope of the new access token if requested
-//                token.setScope(scopeService.toStrings(scope));
-//            } else {
-//                String errorMsg = "Up-scoping is not allowed.";
-//                logger.error(errorMsg);
-//                throw new InvalidScopeException(errorMsg);
-//            }
-//        } else {
-//            // otherwise inherit the scope of the refresh token (if it's there -- this can return a null scope set)
-//            token.setScope(scopeService.toStrings(refreshScopes));
-//        }
-//
-//        token.setClient(client);
-//
-//        if (client.getAccessTokenValiditySeconds() != null) {
-//            Date expiration = new Date(System.currentTimeMillis() + (client.getAccessTokenValiditySeconds() * 1000L));
-//            token.setExpiration(expiration);
-//        }
-//
-//        if (client.isReuseRefreshToken()) {
-//            // if the client re-uses refresh tokens, do that
-//            token.setRefreshToken(refreshToken);
-//        } else {
-//            // otherwise, make a new refresh token
-//            OAuth2RefreshTokenEntity newRefresh = createRefreshToken(client, authHolder);
-//            token.setRefreshToken(newRefresh);
-//
-//            // clean up the old refresh token
-//            tokenRepository.removeRefreshToken(refreshToken);
-//        }
-//
-//        token.setAuthenticationHolder(authHolder);
-//
-//        tokenEnhancer.enhance(token, authHolder.getAuthentication());
-//
-//        tokenRepository.saveAccessToken(token);
-//
-//        return token;
-        return null;
+        OAuth2RefreshTokenEntity refreshToken = clearExpiredRefreshToken(refreshTokenValue);
+
+        if (refreshToken == null) {
+            throw new InvalidTokenException("Invalid refresh token: " + refreshTokenValue);
+        }
+
+        WXBaseClientDetails client = refreshToken.getClient();
+
+        AuthenticationHolderEntity authHolder = refreshToken.getAuthenticationHolder();
+
+        // make sure that the client requesting the token is the one who owns the refresh token
+        ClientDetails requestingClient = clientDetailsService.loadClientByClientId(authRequest.getClientId());
+        if (!client.getClientId().equals(requestingClient.getClientId())) {
+            tokenStore.removeRefreshToken(refreshToken);
+            throw new InvalidClientException("Client does not own the presented refresh token");
+        }
+
+        //Make sure this client allows access token refreshing
+        if (!client.isAllowRefresh()) {
+            throw new InvalidClientException("Client does not allow refreshing access token!");
+        }
+
+        // clear out any access tokens
+        if (client.isClearAccessTokensOnRefresh()) {
+            Collection<OAuth2AccessToken> accessTokens = tokenStore.findTokensByClientId(client.getClientId());
+            for (OAuth2AccessToken accesToken : accessTokens) {
+                tokenStore.removeAccessToken(accesToken);
+            }
+        }
+
+        if (refreshToken.isExpired()) {
+            tokenStore.removeRefreshToken(refreshToken);
+            throw new InvalidTokenException("Expired refresh token: " + refreshTokenValue);
+        }
+
+        OAuth2AccessTokenEntity token = new OAuth2AccessTokenEntity();
+
+        // get the stored scopes from the authentication holder's authorization request; these are the scopes associated with the refresh token
+        Set<String> refreshScopesRequested = new HashSet<>(refreshToken.getAuthenticationHolder().getAuthentication().getOAuth2Request().getScope());
+
+        Set<String> scope = authRequest.getScope() == null ? new HashSet<String>() : new HashSet<>(authRequest.getScope());
+
+        if (scope != null && !scope.isEmpty()) {
+            // ensure a proper subset of scopes
+            if (refreshScopesRequested != null && refreshScopesRequested.containsAll(scope)) {
+                // set the scope of the new access token if requested
+                token.setScope(scope);
+            } else {
+                String errorMsg = "Up-scoping is not allowed.";
+                logger.error(errorMsg);
+                throw new InvalidScopeException(errorMsg);
+            }
+        } else {
+            // otherwise inherit the scope of the refresh token (if it's there -- this can return a null scope set)
+            token.setScope(scope);
+        }
+
+        token.setClient(client);
+
+        if (client.getAccessTokenValiditySeconds() != null) {
+            Date expiration = new Date(System.currentTimeMillis() + (client.getAccessTokenValiditySeconds() * 1000L));
+            token.setExpiration(expiration);
+        }
+
+        if (client.isReuseRefreshToken()) {
+            // if the client re-uses refresh tokens, do that
+            token.setRefreshToken(refreshToken);
+        } else {
+            // otherwise, make a new refresh token
+            OAuth2RefreshTokenEntity newRefresh = createRefreshToken(client, authHolder);
+            token.setRefreshToken(newRefresh);
+
+            // clean up the old refresh token
+            tokenStore.removeRefreshToken(refreshToken);
+        }
+
+        token.setAuthenticationHolder(authHolder);
+
+        OAuth2AccessTokenEntity enhancedToken = (OAuth2AccessTokenEntity)enhance(token, authHolder.getAuthentication());
+
+        tokenStore.storeAccessToken(enhancedToken, authHolder.getAuthentication());
+
+        return enhancedToken;
     }
 
     @Override

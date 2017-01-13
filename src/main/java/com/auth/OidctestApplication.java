@@ -1,6 +1,7 @@
 package com.auth;
 
 import com.auth.oauth2.clientdetails.MongoClientDetailsService;
+import com.auth.oauth2.service.MongodbTokenStore;
 import com.auth.oauth2.userdetails.UserPressDetailsService;
 import com.auth.openid.connect.filter.OIDCTokenFilter;
 import com.auth.openid.connect.service.impl.DefaultOAuth2ProviderTokenService;
@@ -32,6 +33,7 @@ import java.util.Map;
 public class OidctestApplication {
     @Value("${westar.flowfish.key}")
     private String blowfishKey;
+
     @Autowired
     private JedisConnectionFactory jedisConnectionFactory;
 
@@ -59,31 +61,34 @@ public class OidctestApplication {
         return new RedisTokenStore(jedisConnectionFactory);
     }
 
+    @Bean(name = "mongodbTokenStore")
+    public MongodbTokenStore getMongodbTokenStore(){
+        return new MongodbTokenStore();
+    }
+
     @Bean(name = "defaultOAuth2ProviderTokenService")
     public DefaultOAuth2ProviderTokenService getDefaultOAuth2ProviderTokenService() {
-		return new DefaultOAuth2ProviderTokenService();
+        return new DefaultOAuth2ProviderTokenService();
     }
-//    @Bean(name = "inMemoryAuthorizationCodeServices")
-//    public InMemoryAuthorizationCodeServices getInMemoryAuthorizationCodeServices(){
-//        return new InMemoryAuthorizationCodeServices();
-//    }
+
     @Bean(name = "defaultOIDCAuthorizationCodeServices")
-    public DefaultOIDCAuthorizationCodeServices getDefaultOIDCAuthorizationCodeServices(){
+    public DefaultOIDCAuthorizationCodeServices getDefaultOIDCAuthorizationCodeServices() {
         return new DefaultOIDCAuthorizationCodeServices();
     }
 
     /**
      * 生成处理jwt的工具
+     *
      * @return
      */
-    @Bean(name = "jwtTokenStore")
+//    @Bean(name = "jwtTokenStore")
     public JwtTokenStore getJwtTokenStore() {
         //添加token解析增强工具
         JwtTokenStore store = new JwtTokenStore(tokenEnhancer());
         return store;
     }
 
-    @Bean
+    //    @Bean
     public JwtAccessTokenConverter tokenEnhancer() {
         final JwtAccessTokenConverter jwtAccessTokenConverter = new JwtAccessTokenConverter();
         //创建用户身份授权处理器并为其制定处理用户信息的service
@@ -106,7 +111,7 @@ public class OidctestApplication {
             jwtAccessTokenConverter.setKeyPair(new KeyPair(publicKey, privateKey));
             // HMAC Config
             //jwtAccessTokenConverter.setSigningKey("Passw0rd");
-        }catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
@@ -115,6 +120,7 @@ public class OidctestApplication {
 
     /**
      * 自动装配filter Bean
+     *
      * @return
      */
     @Bean(name = "filterRegistrationBean")

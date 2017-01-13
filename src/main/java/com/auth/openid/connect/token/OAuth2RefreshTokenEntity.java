@@ -1,10 +1,11 @@
 package com.auth.openid.connect.token;
 
+import com.auth.oauth2.clientdetails.WXBaseClientDetails;
 import com.auth.openid.connect.token.model.AuthenticationHolderEntity;
 import com.nimbusds.jwt.JWT;
 import org.springframework.security.oauth2.common.OAuth2RefreshToken;
-import org.springframework.security.oauth2.provider.ClientDetails;
 
+import java.io.Serializable;
 import java.util.Date;
 
 /**
@@ -13,29 +14,34 @@ import java.util.Date;
  * @author Anbang Wang
  * @date 2016/12/15
  */
-public class OAuth2RefreshTokenEntity implements OAuth2RefreshToken {
-    private Long id;
+public class OAuth2RefreshTokenEntity implements OAuth2RefreshToken, Serializable {
+    private static final long serialVersionUID = 833619042218875228L;
+    private String id;
 
     private AuthenticationHolderEntity authenticationHolder;
 
-    private ClientDetails client;
+    private WXBaseClientDetails client;
 
     //JWT-encoded representation of this access token entity
-    private JWT jwt;
+    private transient JWT jwt;
 
     // our refresh tokens might expire
     private Date expiration;
+
+    public boolean isExpired() {
+        return getExpiration() == null ? false : System.currentTimeMillis() > getExpiration().getTime();
+    }
 
     @Override
     public String getValue() {
         return jwt.serialize();
     }
 
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 
@@ -47,11 +53,11 @@ public class OAuth2RefreshTokenEntity implements OAuth2RefreshToken {
         this.authenticationHolder = authenticationHolder;
     }
 
-    public ClientDetails getClient() {
+    public WXBaseClientDetails getClient() {
         return client;
     }
 
-    public void setClient(ClientDetails client) {
+    public void setClient(WXBaseClientDetails client) {
         this.client = client;
     }
 

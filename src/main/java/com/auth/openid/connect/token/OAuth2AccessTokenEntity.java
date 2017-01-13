@@ -1,13 +1,15 @@
 package com.auth.openid.connect.token;
 
+import com.auth.oauth2.clientdetails.WXBaseClientDetails;
 import com.auth.openid.connect.token.model.ApprovedSite;
 import com.auth.openid.connect.token.model.AuthenticationHolderEntity;
 import com.auth.openid.connect.token.model.Permission;
 import com.nimbusds.jwt.JWT;
+import org.springframework.data.annotation.Transient;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2RefreshToken;
-import org.springframework.security.oauth2.provider.ClientDetails;
 
+import java.io.Serializable;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -19,14 +21,16 @@ import java.util.Set;
  * @author Anbang Wang
  * @date 2016/12/15
  */
-public class OAuth2AccessTokenEntity implements OAuth2AccessToken {
-    private Long id;
+public class OAuth2AccessTokenEntity implements OAuth2AccessToken,Serializable {
 
-    private ClientDetails client;
+    private static final long serialVersionUID = -525202699563723926L;
+    private String id;
+
+    private WXBaseClientDetails client;
 
     private AuthenticationHolderEntity authenticationHolder; // the authentication that made this access
 
-    private JWT jwtValue; // JWT-encoded access token value
+    private transient JWT jwtValue; // JWT-encoded access token value
 
     private OAuth2AccessTokenEntity idToken; // JWT-encoded OpenID Connect IdToken
 
@@ -107,19 +111,19 @@ public class OAuth2AccessTokenEntity implements OAuth2AccessToken {
         }
     }
 
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 
-    public ClientDetails getClient() {
+    public WXBaseClientDetails getClient() {
         return client;
     }
 
-    public void setClient(ClientDetails client) {
+    public void setClient(WXBaseClientDetails client) {
         this.client = client;
     }
 

@@ -1,5 +1,8 @@
 package com.auth.openid.connect.token.model;
 
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
+import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
@@ -15,8 +18,10 @@ import java.util.Set;
  * @author Anbang Wang
  * @date 2016/12/15
  */
-public class AuthenticationHolderEntity {
-    private Long id;
+public class AuthenticationHolderEntity implements Serializable{
+    private static final long serialVersionUID = -3199375371702779439L;
+
+    private String id;
 
     private SavedUserAuthentication userAuth;
 
@@ -38,12 +43,16 @@ public class AuthenticationHolderEntity {
 
     private Map<String, String> requestParameters;
 
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
+    }
+
+    public void setUserAuth(SavedUserAuthentication userAuth) {
+        this.userAuth = userAuth;
     }
 
     public SavedUserAuthentication getUserAuth() {
