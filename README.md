@@ -13,9 +13,9 @@
 
 **token request**
 
-curl -X POST -H "Content-Type: application/x-www-form-urlencoded" -d 'grant_type=authorization_code&code=d4IYR5&redirect_uri=http://example.com&client_id=acme&client_secret=acmesecret' "http://127.0.0.1:9090/auth/oidc/token"
+请求: curl -X POST -H "Content-Type: application/x-www-form-urlencoded" -d 'grant_type=authorization_code&code=d4IYR5&redirect_uri=http://example.com&client_id=acme&client_secret=acmesecret' "http://127.0.0.1:9090/auth/oidc/token"
 
-{
+回复: {
   "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsImF6cCI6ImFjbWUiLCJpc3MiOiJodHRwOlwvXC93d3d3LndhbmcuY29tIiwiZXhwIjoxNDg0MzYwNTI0LCJpYXQiOjE0ODQyNzQxMjQsImp0aSI6IjI3ZmU5NjlmLTM1YTEtNDljOS1hOWQ0LTMzYTM2MWRiZWRlNyJ9.suW91W1xKVmLXxr68uhM_j8Ycd3OF1eWBRSQpU2HYFxmfrn0uSQSB5PwOI3Ezr90qlvuX79onwKbHH7B89eoT68dY8ubfQNJr0wjeYUGmT1aweLgLDxQWpcqOomgEPm7QxoUMmtvBQIeYmEi86FZw9BEUzOLIqGC3nPfowgIy4yhrsBjTvfOjZrQENcKf8CNHXlkWv5lkEYOd-NYdQSfEy1CcmijXyTG47WVerct38VRgM5Mwqy1d3Nx0rt_7nGvOTuz7rbmLHkMsZUBwNc89h_UID-BfBckt006WEc1URPXZt1wJGmK7Np9q3AQ5irxsswsatGBVKh8tUnz8MLuvA",
   "token_type": "Bearer",
   "refresh_token": "eyJhbGciOiJub25lIn0.eyJleHAiOjE0ODQ4Nzg5MjQsImp0aSI6ImE1YzEyMGY3LWM3NTEtNDcwMC1hNjNkLWQ0MzBkMzlhNTZhYyJ9.",
@@ -26,9 +26,9 @@ curl -X POST -H "Content-Type: application/x-www-form-urlencoded" -d 'grant_type
 
 **refresh token request**
 
-curl -X POST -H "Content-Type: application/x-www-form-urlencoded" -d 'grant_type=refresh_token&refresh_token=eyJhbGciOiJub25lIn0.eyJleHAiOjE0ODQ4Nzg5MjQsImp0aSI6ImE1YzEyMGY3LWM3NTEtNDcwMC1hNjNkLWQ0MzBkMzlhNTZhYyJ9.&client_id=acme&client_secret=acmesecret' "http://127.0.0.1:9090/auth/oidc/token"
+请求: curl -X POST -H "Content-Type: application/x-www-form-urlencoded" -d 'grant_type=refresh_token&refresh_token=eyJhbGciOiJub25lIn0.eyJleHAiOjE0ODQ4Nzg5MjQsImp0aSI6ImE1YzEyMGY3LWM3NTEtNDcwMC1hNjNkLWQ0MzBkMzlhNTZhYyJ9.&client_id=acme&client_secret=acmesecret' "http://127.0.0.1:9090/auth/oidc/token"
 
-{
+回复: {
   "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsImF6cCI6ImFjbWUiLCJpc3MiOiJodHRwOlwvXC93d3d3LndhbmcuY29tIiwiaWF0IjoxNDg0MjkwMzIyLCJqdGkiOiI0ZTk3MDgxOS1hNTIyLTQxZDctYTYwNy1iZjhlYWExYjU1ZjEifQ.BTNqLohyMpIsTctb6G1qxTebJuKgJwpxIYgbKcfL-EF-DukypzLLKQHFOhxaklIGLCZeJsuJ8_51i8DlGqHf3FDZqVqpDfG9wVehmxKKElwGUImD5ySmx0cIs2pkwjbx8cFknE-SRpYxpP5COFjS9SWgK1G4PeRK2s596CScPTSVgHfZ8uSEGrlkwlVrUmnP2II78UfFhrIV2pstZEKwmtqJG7AO8JnK6e84DRZv6ehpRQ3pGU1rrN2S7hOZZHaxlHL-9MOfDvpOfsnCJlPTC9yYVmUcxTIqqk_E_Lw6DVj5JsX_9IegcVp-QpMwYdZoDgYFbuvOg53usL_ilTyWYg",
   "token_type": "Bearer",
   "refresh_token": "eyJhbGciOiJub25lIn0.eyJleHAiOjE0ODQ4Nzg5MjQsImp0aSI6ImE1YzEyMGY3LWM3NTEtNDcwMC1hNjNkLWQ0MzBkMzlhNTZhYyJ9.",
