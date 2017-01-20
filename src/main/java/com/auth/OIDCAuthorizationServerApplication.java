@@ -30,7 +30,7 @@ import java.util.Map;
 
 @SpringBootApplication
 @EnableDiscoveryClient
-public class OidctestApplication {
+public class OIDCAuthorizationServerApplication {
     @Value("${westar.flowfish.key}")
     private String blowfishKey;
 
@@ -38,7 +38,7 @@ public class OidctestApplication {
     private JedisConnectionFactory jedisConnectionFactory;
 
     public static void main(String[] args) {
-        SpringApplication.run(OidctestApplication.class, args);
+        SpringApplication.run(OIDCAuthorizationServerApplication.class, args);
     }
 
     @Bean(name = "blowfishEncryptor")

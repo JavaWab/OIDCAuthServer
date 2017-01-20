@@ -2,10 +2,8 @@ package com.auth.oauth2.service;
 
 import com.auth.openid.connect.token.OAuth2AccessTokenEntity;
 import com.auth.openid.connect.token.OAuth2RefreshTokenEntity;
-import com.google.gson.Gson;
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTParser;
-import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -32,7 +30,6 @@ import java.util.Map;
 public class MongodbTokenStore implements TokenStore {
     @Autowired
     private MongoTemplate mongoTemplate;
-    Gson gson = new Gson();
 
     @Override
     public OAuth2Authentication readAuthentication(OAuth2AccessToken oAuth2AccessToken) {
